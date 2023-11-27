@@ -12,7 +12,14 @@ module.exports = app => {
   // router.post('/edit_user', controller.home.editUser);
   // router.post('/delete', controller.home.deleteUser);
   const jwtVerify = middleware.jwtVerify(app.config.jwt.secret);
-  router.post('/api/user/register', controller.user.register);
-  router.post('/api/user/login', controller.user.login);
-  router.get('/api/user/verify', jwtVerify, controller.user.verify);
+  router.post('/api/user/register', controller.user.register); //注册
+  router.post('/api/user/login', controller.user.login); //登录
+  router.get('/api/user/getUserInfo', jwtVerify, controller.user.getUserInfo); //获取信息
+  router.get('/api/user/verify', jwtVerify, controller.user.verify); //验证登录
+  router.post('/api/upload', controller.upload.upload);
+  router.post(
+    '/api/user/editUserinfo',
+    jwtVerify,
+    controller.user.editUserInfo,
+  ); // 修改信息
 };

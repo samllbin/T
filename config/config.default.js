@@ -10,6 +10,7 @@ module.exports = appInfo => {
    * built-in config
    * @type {Egg.EggAppConfig}
    **/
+
   const config = (exports = {});
 
   // use for cookie sign key, should change to your own and keep security
@@ -21,6 +22,7 @@ module.exports = appInfo => {
   // add your user config here
   const userConfig = {
     // myAppName: 'egg',
+    uploadDir: 'app/public/upload',
   };
 
   exports.mysql = {
@@ -41,6 +43,14 @@ module.exports = appInfo => {
     app: true,
     // 是否加载到 agent 上，默认关闭
     agent: false,
+  };
+  config.multipart = {
+    mode: 'file',
+  };
+  config.cors = {
+    origin: '*', // 允许所有跨域访问
+    credentials: true, // 允许 Cookie 跨域跨域
+    allowMethods: 'GET,HEAD,PUT,POST,DELETE,PATCH',
   };
 
   config.security = {

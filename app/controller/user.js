@@ -2,6 +2,8 @@
 
 const Controller = require('egg').Controller;
 
+const defaultAvatar =
+  'http://s.yezgea02.com/1615973940679/WeChat77d6d2ac093e247c361f0b8a7aeb6c2a.png';
 class UserController extends Controller {
   //注册
   async register() {
@@ -25,8 +27,6 @@ class UserController extends Controller {
       };
       return;
     }
-    const defaultAvatar =
-      'http://s.yezgea02.com/1615973940679/WeChat77d6d2ac093e247c361f0b8a7aeb6c2a.png';
 
     const result = await ctx.service.user.register({
       userName,
@@ -106,6 +106,59 @@ class UserController extends Controller {
         ...info,
       },
     };
+  }
+
+  //用户信息
+  async getUserInfo() {
+    const { ctx, app } = this;
+    const token = ctx.request.header.authorization;
+
+    const info = app.jwt.verify(token, app.config.jwt.secret);
+    const userInfo = await ctx.service.user.getUserByName(info.userName);
+
+    ctx.body = {
+      code: 200,
+      msg: '请求成功',
+      data: {
+        id: userInfo.id,
+        userName: userInfo.userName,
+        signature: userInfo.signature,
+        avatar: userInfo.avatar || defaultAvatar,
+      },
+    };
+  }
+
+  //修改用户信息
+  async editUserInfo() {
+    const { ctx, app } = this;
+    const { signature = '', avatar = '' } = ctx.request.body;
+
+    try {
+      let user_id;
+      const token = ctx.header.authorization;
+
+      const info = app.jwt.verify(token, app.config.jwt.secret);
+      user_id = info.id;
+
+      const userInfo = await ctx.service.user.getUserByName(info.userName);
+      const result = await ctx.service.user.editUserInfo({
+        ...userInfo,
+        signature,
+        avatar,
+      });
+      ctx.body = {
+        code: 200,
+        msg: '请求成功',
+        data: {
+          id: user_id,
+          signature,
+          username: userInfo.username,
+          avatar,
+        },
+      };
+    } catch (error) {
+      console.log(error);
+    }
   }
 }
 
