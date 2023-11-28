@@ -199,6 +199,169 @@ class BillController extends Controller {
       };
     }
   }
+
+  async update() {
+    const { ctx, app } = this;
+
+    const {
+      id,
+      amount,
+      date,
+      type_id,
+      type_name,
+      pay_type,
+      remark = '',
+    } = ctx.request.body;
+
+    if (!amount || !type_id || !type_name || !date || !pay_type) {
+      ctx.body = {
+        code: 400,
+        msg: '参数不完整',
+        date: null,
+      };
+      return null;
+    }
+    try {
+      let user_id;
+      const token = ctx.header.authorization;
+      const info = app.jwt.verify(token, app.config.jwt.secret);
+
+      if (!info) return;
+      user_id = info.id;
+
+      const result = await ctx.service.bill.update({
+        id,
+        amount,
+        type_id,
+        type_name,
+        date,
+        pay_type,
+        remark,
+        user_id,
+      });
+
+      ctx.body = {
+        code: 200,
+        msg: '更新成功',
+        data: null,
+      };
+    } catch (error) {
+      console.log(error);
+      ctx.body = {
+        code: 500,
+        msg: '系统错误',
+        data: null,
+      };
+    }
+  }
+
+  //删除账单
+  async deleteAccount() {
+    const { ctx, app } = this;
+
+    const { id } = ctx.request.body;
+    const token = ctx.header.authorization;
+    let user_id;
+
+    const info = app.jwt.verify(token, app.config.jwt.secret);
+    if (!info) return;
+    user_id = info.id;
+
+    if (!id) {
+      ctx.body = {
+        code: 400,
+        msg: '参数错误',
+        data: null,
+      };
+      return null;
+    }
+    try {
+      const result = await ctx.service.bill.deleteAccount(id, user_id);
+      ctx.body = {
+        code: 200,
+        msg: '删除成功',
+        data: null,
+      };
+    } catch (error) {
+      console.log(error);
+      ctx.body = {
+        code: 500,
+        msg: '系统错误',
+        data: null,
+      };
+    }
+  }
+  //获取某个月份的账单
+  async data() {
+    const { ctx, app } = this;
+    const { date = '' } = ctx.query;
+    const token = ctx.header.authorization;
+    let user_id;
+
+    const info = app.jwt.verify(token, app.config.jwt.secret);
+    if (!info) return;
+    user_id = info.id;
+
+    try {
+      const result = await ctx.service.bill.list(user_id);
+
+      const start = moment(date).startOf('month').unix() * 1000;
+      const end = moment(date).endOf('month').unix() * 1000;
+      const _data = result.filter(
+        item => Number(item.date) >= start && Number(item.date) <= end,
+      );
+      //总支出
+      const total_expense = _data.reduce((total, cur) => {
+        if (cur.pay_type == 1) {
+          total += Number(cur.amount);
+        }
+        return total;
+      }, 0);
+
+      //总收入
+      const total_income = _data.reduce((total, cur) => {
+        if (cur.pay_type == 2) {
+          total += Number(cur.amount);
+        }
+        return total;
+      }, 0);
+
+      let total_account = _data.reduce((arr, cur) => {
+        const index = arr.findIndex(item => cur.type_id == item.type_id);
+        if (index == -1) {
+          arr.push({
+            type_id: cur.type_id,
+            type_name: cur.type_name,
+            pay_type: cur.pay_type,
+            totalNumber: Number(cur.amount),
+          });
+        } else {
+          arr[index].totalNumber += Number(cur.amount);
+        }
+        return arr;
+      }, []);
+      total_account = total_account.map(item => {
+        item.totalNumber = Number(Number(item.totalNumber).toFixed(2));
+        return item;
+      });
+      ctx.body = {
+        code: 200,
+        msg: '获取成功',
+        data: {
+          total_expense: Number(total_expense).toFixed(2),
+          total_income: Number(total_income).toFixed(2),
+          total_account: total_account || [],
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      ctx.body = {
+        code: 500,
+        msg: '系统错误',
+        data: null,
+      };
+    }
+  }
 }
 
 module.exports = BillController;
